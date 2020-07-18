@@ -148,23 +148,13 @@ VOID SaveTransitions(ADDRINT Address)
 *                       function call
 */
 
-VOID InstrumentBasicBlock(BBL bbl)
+VOID InstrumentInstruction(INS ins, VOID *v)
 {
-    BBL_InsertCall(
-        bbl, IPOINT_ANYWHERE, (AFUNPTR)SaveTransitions,
+    INS_InsertCall(
+        ins, IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
         IARG_INST_PTR,
         IARG_END
     );
-}
-
-VOID Trace(TRACE trace, VOID *v)
-{
-    // Visit every basic block in the trace
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-        // Insert a call to SaveTranitions() in every basic block
-        InstrumentBasicBlock(bbl);
-    }
 }
 
 VOID ImageLoad(IMG Image, VOID *v)
@@ -213,8 +203,8 @@ int main(int argc, char *argv[])
     // Register function to be called for every loaded module
     IMG_AddInstrumentFunction(ImageLoad, NULL);
 
-    // Register function to be called to instrument traces
-    TRACE_AddInstrumentFunction(Trace, NULL);
+    // Register function to be called before every instruction
+    INS_AddInstrumentFunction(InstrumentInstruction, NULL);
 
     std::cerr << "===============================================" << std::endl;
     std::cerr << "This application is instrumented by " << TOOL_NAME << std::endl;
