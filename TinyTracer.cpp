@@ -66,70 +66,99 @@ INT32 Usage()
 // Analysis routines
 /* ===================================================================== */
 
+ADDRINT get_mod_base(ADDRINT Address)
+{
+    const s_module* mod_ptr = pInfo.getModByAddr(Address);
+    if (mod_ptr) {
+        return mod_ptr->start;
+    }
+    return UNKNOWN_ADDR;
+}
+
+ADDRINT get_base(ADDRINT Address)
+{
+    ADDRINT base = get_mod_base(Address);
+    if (base != UNKNOWN_ADDR) {
+        return base;
+    }
+    return GetPageOfAddr(Address);
+}
+
+ADDRINT addr_to_rva(ADDRINT Address)
+{
+    ADDRINT base = get_base(Address);
+    if (base == UNKNOWN_ADDR) {
+        return Address;
+    }
+    return Address - base;
+}
+
 /*!
 * This function is called for every basic block when it is about to be executed.
 * @param[in]   numInstInBbl    number of instructions in the basic block
 * @note use atomic operations for multi-threaded applications
 */
-
 VOID SaveTransitions(ADDRINT Address, UINT32 numInstInBbl)
 {
     PIN_LockClient();
 
-    static bool is_prevMy = false;
-    static ADDRINT prevAddr = UNKNOWN_ADDR;
+    // previous address
+    static ADDRINT prevVA = UNKNOWN_ADDR;
 
-    const s_module *mod_ptr = pInfo.getModByAddr(Address);
-    bool is_currMy = pInfo.isMyAddress(Address);
-    static bool is_prevUnknown = false;
-    static ADDRINT unknownMod = UNKNOWN_ADDR;
+    // last shellcode to which the transition got redirected:
+    static ADDRINT lastShellc = UNKNOWN_ADDR;
+
+    const bool isCurrMy = pInfo.isMyAddress(Address);
+    const bool isPrevMy = pInfo.isMyAddress(prevVA);
+    const s_module* prevModule = pInfo.getModByAddr(prevVA);
+    const s_module* mod_ptr = pInfo.getModByAddr(Address);
 
     //is it a transition from the traced module to a foreign module?
-    if (!is_currMy && is_prevMy && prevAddr != UNKNOWN_ADDR) {
-        if (!mod_ptr) {
+    if (!isCurrMy && isPrevMy && prevVA != UNKNOWN_ADDR) {
+        ADDRINT prevRVA = addr_to_rva(prevVA);
+        if (mod_ptr) {
+            const std::string func = get_func_at(Address);
+            const std::string dll_name = mod_ptr->name;
+            traceLog.logCall(0, prevRVA, true, dll_name, func);
+        }
+        else {
             //not in any of the mapped modules:
-            unknownMod = GetPageOfAddr(Address); //save the beginning of this area
-            traceLog.logCall(prevAddr, unknownMod, Address);
-        } else {
-            const std::string func = get_func_at(Address);
-            const std::string dll_name = mod_ptr->name;
-            traceLog.logCall(0, prevAddr, true, dll_name, func);
+            lastShellc = GetPageOfAddr(Address); //save the beginning of this area
+            traceLog.logCall(prevRVA, lastShellc, Address);
         }
     }
-    if (m_FollowShellcode && is_prevUnknown && mod_ptr) {
-        const ADDRINT start = GetPageOfAddr(prevAddr);
-        if (start == unknownMod) {
+    // trace calls from witin the last shellcode that was called from the traced module:
+    if (m_FollowShellcode && !prevModule && mod_ptr) {
+        const ADDRINT start = GetPageOfAddr(prevVA);
+        if (start != UNKNOWN_ADDR && start == lastShellc) {
             const std::string func = get_func_at(Address);
             const std::string dll_name = mod_ptr->name;
-            traceLog.logCall(start, prevAddr, false, dll_name, func);
+            traceLog.logCall(start, prevVA, false, dll_name, func);
         }
     }
 
-    //is the address within the traced module?
-    if (is_currMy && mod_ptr) {
-        ADDRINT addr = Address - mod_ptr->start; // substract module's ImageBase
-        const s_module* sec = pInfo.getSecByAddr(addr);
+    // is the address within the traced module?
+    if (isCurrMy) {
+        ADDRINT rva = addr_to_rva(Address); // convert to RVA
+
         // is it a transition from one section to another?
-        if (pInfo.isSectionChanged(addr)) {
-            std::string name = (sec) ? sec->name : "?";
-            if (prevAddr != UNKNOWN_ADDR && is_prevMy) {
-                const s_module* prev_sec = pInfo.getSecByAddr(prevAddr);
-                traceLog.logNewSectionCalled(prevAddr, prev_sec->name, sec->name);
+        if (pInfo.isSectionChanged(rva)) {
+            const s_module* sec = pInfo.getSecByAddr(rva);
+            std::string curr_name = (sec) ? sec->name : "?";
+            if (prevVA != UNKNOWN_ADDR && isPrevMy) {
+
+                ADDRINT prevRva = addr_to_rva(Address); // convert to RVA
+                const s_module* prev_sec = pInfo.getSecByAddr(prevRva);
+                std::string prev_name = (prev_sec) ? prev_sec->name : "?";
+                traceLog.logNewSectionCalled(prevRva, prev_name, curr_name);
             }
-            traceLog.logSectionChange(addr, name);
+            traceLog.logSectionChange(rva, curr_name);
         }
-        prevAddr = addr; /* update saved */
     }
 
-    /* update saved */
-    is_prevMy = is_currMy;
-    
-    if (m_FollowShellcode) {
-        is_prevUnknown = (mod_ptr == NULL);
-        if (is_prevUnknown) {
-            prevAddr = Address;
-        }
-    }
+    // update saved
+    prevVA = Address;
+
     PIN_UnlockClient();
 }
 
