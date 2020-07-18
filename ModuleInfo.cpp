@@ -1,4 +1,5 @@
 #include "ModuleInfo.h"
+#include <string>
 
 bool init_module(s_module &mod, const ADDRINT &Address)
 {
@@ -52,10 +53,19 @@ std::string get_func_at(ADDRINT callAddr)
 {
     IMG pImg = IMG_FindByAddress(callAddr);
     RTN rtn = RTN_FindByAddress(callAddr);
-    if (IMG_Valid(pImg) && RTN_Valid(rtn)) {
-        return RTN_Name(rtn);
+    if (!IMG_Valid(pImg) || !RTN_Valid(rtn)) {
+        return "?";
     }
-    return "";
+    std::string name = RTN_Name(rtn);
+    ADDRINT rtnAddr = RTN_Address(rtn);
+    if (rtnAddr == callAddr) {
+        return name;
+    }
+    // it doesn't start at the beginning of the routine
+    const ADDRINT diff = callAddr - rtnAddr;
+    std::ostringstream sstr;
+    sstr << "[" << name << "+" << std::hex << diff << "]*";
+    return sstr.str();
 }
 
 ADDRINT get_mod_base(ADDRINT Address)
