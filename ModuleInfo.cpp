@@ -57,3 +57,31 @@ std::string get_func_at(ADDRINT callAddr)
     }
     return "";
 }
+
+ADDRINT get_mod_base(ADDRINT Address)
+{
+    IMG img = IMG_FindByAddress(Address);
+    if (IMG_Valid(img)) {
+        const ADDRINT base = IMG_LoadOffset(img);
+        return base;
+    }
+    return UNKNOWN_ADDR;
+}
+
+ADDRINT get_base(ADDRINT Address)
+{
+    ADDRINT base = get_mod_base(Address);
+    if (base != UNKNOWN_ADDR) {
+        return base;
+    }
+    return GetPageOfAddr(Address);
+}
+
+ADDRINT addr_to_rva(ADDRINT Address)
+{
+    ADDRINT base = get_base(Address);
+    if (base == UNKNOWN_ADDR) {
+        return Address;
+    }
+    return Address - base;
+}

@@ -66,33 +66,6 @@ INT32 Usage()
 // Analysis routines
 /* ===================================================================== */
 
-ADDRINT get_mod_base(ADDRINT Address)
-{
-    const s_module* mod_ptr = pInfo.getModByAddr(Address);
-    if (mod_ptr) {
-        return mod_ptr->start;
-    }
-    return UNKNOWN_ADDR;
-}
-
-ADDRINT get_base(ADDRINT Address)
-{
-    ADDRINT base = get_mod_base(Address);
-    if (base != UNKNOWN_ADDR) {
-        return base;
-    }
-    return GetPageOfAddr(Address);
-}
-
-ADDRINT addr_to_rva(ADDRINT Address)
-{
-    ADDRINT base = get_base(Address);
-    if (base == UNKNOWN_ADDR) {
-        return Address;
-    }
-    return Address - base;
-}
-
 /*!
 * This function is called for every basic block when it is about to be executed.
 * @param[in]   numInstInBbl    number of instructions in the basic block
