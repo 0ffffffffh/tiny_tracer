@@ -49,13 +49,17 @@ bool ProcessInfo::addModule(IMG Image)
     return true;
 }
 
-const bool ProcessInfo::isSectionChanged(ADDRINT Address /* without imagebase */)
+const bool ProcessInfo::isSectionChanged(ADDRINT Rva)
 {
-    static s_module* prevModule = nullptr;
-    const s_module* currModule = getSecByAddr(Address);
+    // saved section (of the target module)
+    static s_module* prevSec = nullptr;
 
-    if (prevModule != currModule) {
-        prevModule = (s_module*)currModule;
+    // current section of the target module (by RVA)
+    const s_module* currSec = getSecByAddr(Rva);
+
+    if (prevSec != currSec) {
+        // update the stored section
+        prevSec = (s_module*)currSec;
         return true;
     }
     return false;

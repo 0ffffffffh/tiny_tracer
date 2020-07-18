@@ -46,7 +46,12 @@ public:
         return isMyModule(mod_ptr);
     }
 
-    const bool isSectionChanged(ADDRINT Address);
+    /** 
+        Saves the transition between sections witing the target module.
+        \param Rva : current RVA witin the target module
+        \return : true if the section changed, false otherwise
+    */
+    const bool isSectionChanged(ADDRINT Rva);
     
     bool isMyModule(const s_module* mod);
 
