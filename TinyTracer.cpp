@@ -67,11 +67,11 @@ INT32 Usage()
 /* ===================================================================== */
 
 /*!
-* This function is called for every basic block when it is about to be executed.
-* @param[in]   numInstInBbl    number of instructions in the basic block
+* This function is called before every intruction to be executed.
+* @param[in]   Address    address of the instruction to be executed
 * @note use atomic operations for multi-threaded applications
 */
-VOID SaveTransitions(ADDRINT Address, UINT32 numInstInBbl)
+VOID SaveTransitions(ADDRINT Address)
 {
     PIN_LockClient();
 
@@ -140,25 +140,30 @@ VOID SaveTransitions(ADDRINT Address, UINT32 numInstInBbl)
 /* ===================================================================== */
 
 /*!
-* Insert call to the SaveTranitions() analysis routine before every basic block
+* Insert call to the SaveTranitions() analysis routine before every instruction
 * of the trace.
 * This function is called every time a new trace is encountered.
 * @param[in]   trace    trace to be instrumented
 * @param[in]   v        value specified by the tool in the TRACE_AddInstrumentFunction
 *                       function call
 */
+
+VOID InstrumentBasicBlock(BBL bbl)
+{
+    BBL_InsertCall(
+        bbl, IPOINT_ANYWHERE, (AFUNPTR)SaveTransitions,
+        IARG_INST_PTR,
+        IARG_END
+    );
+}
+
 VOID Trace(TRACE trace, VOID *v)
 {
     // Visit every basic block in the trace
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
     {
-        // Insert a call to SaveTranitions() before every basic block
-        for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-            INS_InsertCall(ins, IPOINT_BEFORE,
-                (AFUNPTR)SaveTransitions,
-                IARG_INST_PTR,
-                IARG_UINT32, BBL_NumIns(bbl), IARG_END);
-        }
+        // Insert a call to SaveTranitions() in every basic block
+        InstrumentBasicBlock(bbl);
     }
 }
 
@@ -206,10 +211,10 @@ int main(int argc, char *argv[])
     m_FollowShellcode = KnobFollowShellcode.Value();
 
     // Register function to be called for every loaded module
-    IMG_AddInstrumentFunction(ImageLoad, 0);
+    IMG_AddInstrumentFunction(ImageLoad, NULL);
 
     // Register function to be called to instrument traces
-    TRACE_AddInstrumentFunction(Trace, 0);
+    TRACE_AddInstrumentFunction(Trace, NULL);
 
     std::cerr << "===============================================" << std::endl;
     std::cerr << "This application is instrumented by " << TOOL_NAME << std::endl;
