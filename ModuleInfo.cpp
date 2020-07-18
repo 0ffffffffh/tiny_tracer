@@ -53,8 +53,10 @@ std::string get_func_at(ADDRINT callAddr)
 {
     IMG pImg = IMG_FindByAddress(callAddr);
     RTN rtn = RTN_FindByAddress(callAddr);
-    if (!IMG_Valid(pImg) || !RTN_Valid(rtn)) {
-        return "?";
+    if (!RTN_Valid(rtn)) {
+        std::ostringstream sstr;
+        sstr << "[" << addr_to_rva(callAddr) << "]*";
+        return sstr.str();
     }
     std::string name = RTN_Name(rtn);
     ADDRINT rtnAddr = RTN_Address(rtn);
