@@ -57,7 +57,7 @@ void TraceLog::logSectionChange(const ADDRINT prevAddr, std::string name)
     m_traceFile 
         << std::hex << prevAddr 
         << DELIMITER 
-        << "section: " << name 
+        << "section: [" << name << "]"
         << std::endl;
     m_traceFile.flush();
 }
@@ -68,7 +68,7 @@ void TraceLog::logNewSectionCalled(const ADDRINT prevAddr, std::string prevSecti
     m_traceFile
         << std::hex << prevAddr
         << DELIMITER
-        << prevSection << "->" << currSection
+        << "[" << prevSection << "] -> [" << currSection << "]"
         << std::endl;
     m_traceFile.flush();
 }
