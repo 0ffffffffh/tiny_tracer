@@ -147,7 +147,7 @@ VOID SaveTransitions(ADDRINT Address, UINT32 numInstInBbl)
             std::string curr_name = (sec) ? sec->name : "?";
             if (prevVA != UNKNOWN_ADDR && isPrevMy) {
 
-                ADDRINT prevRva = addr_to_rva(Address); // convert to RVA
+                ADDRINT prevRva = addr_to_rva(prevVA); // convert to RVA
                 const s_module* prev_sec = pInfo.getSecByAddr(prevRva);
                 std::string prev_name = (prev_sec) ? prev_sec->name : "?";
                 traceLog.logNewSectionCalled(prevRva, prev_name, curr_name);
