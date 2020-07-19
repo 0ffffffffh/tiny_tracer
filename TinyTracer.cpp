@@ -17,7 +17,6 @@
 #include "ProcessInfo.h"
 #include "TraceLog.h"
 
-#define TOOL_NAME "TinyTracer"
 #ifndef PAGE_SIZE
     #define PAGE_SIZE 0x1000
 #endif
@@ -208,7 +207,7 @@ int main(int argc, char *argv[])
     INS_AddInstrumentFunction(InstrumentInstruction, NULL);
 
     std::cerr << "===============================================" << std::endl;
-    std::cerr << "This application is instrumented by " << TOOL_NAME << std::endl;
+    std::cerr << "This application is instrumented by " << TOOL_NAME << " v." << VERSION << std::endl;
     std::cerr << "Tracing module: " << app_name << std::endl;
     if (!KnobOutputFile.Value().empty())
     {
