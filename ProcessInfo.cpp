@@ -14,15 +14,6 @@ bool is_my_name(const s_module* mod, std::string name)
     return false;
 }
 
-bool ProcessInfo::isMyModule(const s_module* mod)
-{
-    if (!mod || !myModule) return false;
-    if (this->myModule->start == mod->start) {
-        return true;
-    }
-    return false;
-}
-
 void ProcessInfo::addModuleSections(IMG Image, ADDRINT ImageBase)
 {
     // enumerate sections within the analysed module
@@ -38,13 +29,12 @@ bool ProcessInfo::addModule(IMG Image)
     // Add module into a global map
     s_module mod;
     init_module(mod, Image);
-    m_Modules[mod.start] = mod;
 
     // if this module is an object of observation, add its sections also
     if (m_myPid == 0 && is_my_name(&mod, m_AnalysedApp)) {
         m_myPid = PIN_GetPid();
-        myModule = &m_Modules[mod.start];
-        addModuleSections(Image, mod.start);
+        myModuleBase = IMG_LoadOffset(Image);
+        addModuleSections(Image, myModuleBase);
     }
     return true;
 }

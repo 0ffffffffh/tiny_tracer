@@ -70,10 +70,29 @@ INT32 Usage()
 * @param[in]   Address    address of the instruction to be executed
 * @note use atomic operations for multi-threaded applications
 */
+/*
+bool is_valid_call(ADDRINT callAddr)
+{
+    const ADDRINT treshold = 0x50;
+    RTN rtn = RTN_FindByAddress(callAddr);
+    if (!RTN_Valid(rtn)) {
+        return false;
+    }
+    std::string name = RTN_Name(rtn);
+    ADDRINT rtnAddr = RTN_Address(rtn);
+    if (rtnAddr == callAddr) {
+        return true;
+    }
+    ADDRINT diff = callAddr - rtnAddr;
+    if (diff > treshold) {
+        return false;
+    }
+    return true;
+}*/
+
 VOID SaveTransitions(ADDRINT Address)
 {
     PIN_LockClient();
-
     // previous address
     static ADDRINT prevVA = UNKNOWN_ADDR;
 
@@ -85,7 +104,7 @@ VOID SaveTransitions(ADDRINT Address)
 
     IMG currModule = IMG_FindByAddress(Address);
     IMG prevModule = IMG_FindByAddress(prevVA);
-
+    
     //is it a transition from the traced module to a foreign module?
     if (!isCurrMy && isPrevMy && prevVA != UNKNOWN_ADDR) {
         ADDRINT prevRVA = addr_to_rva(prevVA);
