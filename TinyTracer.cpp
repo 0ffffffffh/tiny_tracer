@@ -83,15 +83,16 @@ VOID SaveTransitions(ADDRINT Address)
 
     const bool isCurrMy = pInfo.isMyAddress(Address);
     const bool isPrevMy = pInfo.isMyAddress(prevVA);
-    const s_module* prevModule = pInfo.getModByAddr(prevVA);
-    const s_module* mod_ptr = pInfo.getModByAddr(Address);
+
+    IMG currModule = IMG_FindByAddress(Address);
+    IMG prevModule = IMG_FindByAddress(prevVA);
 
     //is it a transition from the traced module to a foreign module?
     if (!isCurrMy && isPrevMy && prevVA != UNKNOWN_ADDR) {
         ADDRINT prevRVA = addr_to_rva(prevVA);
-        if (mod_ptr) {
+        if (IMG_Valid(currModule)) {
             const std::string func = get_func_at(Address);
-            const std::string dll_name = mod_ptr->name;
+            const std::string dll_name = IMG_Name(currModule);
             traceLog.logCall(0, prevRVA, true, dll_name, func);
         }
         else {
@@ -101,11 +102,11 @@ VOID SaveTransitions(ADDRINT Address)
         }
     }
     // trace calls from witin the last shellcode that was called from the traced module:
-    if (m_FollowShellcode && !prevModule && mod_ptr) {
+    if (m_FollowShellcode && !IMG_Valid(prevModule) && IMG_Valid(currModule)) {
         const ADDRINT start = GetPageOfAddr(prevVA);
         if (start != UNKNOWN_ADDR && start == lastShellc) {
             const std::string func = get_func_at(Address);
-            const std::string dll_name = mod_ptr->name;
+            const std::string dll_name = IMG_Name(currModule);
             traceLog.logCall(start, prevVA, false, dll_name, func);
         }
     }
