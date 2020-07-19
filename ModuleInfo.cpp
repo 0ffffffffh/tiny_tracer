@@ -1,29 +1,6 @@
 #include "ModuleInfo.h"
 #include <string>
 
-bool init_module(s_module &mod, const ADDRINT &Address)
-{
-    IMG Image = IMG_FindByAddress(Address);
-    if (!IMG_Valid(Image)) {
-        mod.is_valid = false;
-        return false;
-    }
-    return init_module(mod, Image);
-}
-
-bool init_module(s_module &mod, const IMG &Image)
-{
-    if (!IMG_Valid(Image)) {
-        mod.is_valid = false;
-        return false;
-    }
-    mod.name = std::string(IMG_Name(Image));
-    mod.start = IMG_LoadOffset(Image);
-    mod.end = mod.start + IMG_SizeMapped(Image);
-    mod.is_valid = true;
-    return true;
-}
-
 bool init_section(s_module &section, const ADDRINT &ImageBase, const SEC &sec)
 {
     if (SEC_Address(sec) < ImageBase) {

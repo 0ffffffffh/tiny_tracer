@@ -13,9 +13,6 @@ struct s_module {
     bool is_valid;
 };
 
-bool init_module(s_module &mod, const ADDRINT &Address);
-bool init_module(s_module &mod, const IMG &Image);
-
 bool init_section(s_module &section, const ADDRINT &ImageBase, const SEC &sec);
 
 const s_module* get_by_addr(ADDRINT Address, std::map<ADDRINT, s_module> &modules);

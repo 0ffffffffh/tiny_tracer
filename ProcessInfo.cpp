@@ -2,12 +2,9 @@
 
 //----
 
-bool is_my_name(const s_module* mod, std::string name)
+bool is_my_name(const std::string &module_name, std::string my_name)
 {
-    if (!mod) {
-        return false;
-    }
-    std::size_t found = mod->name.find(name);
+    std::size_t found = module_name.find(my_name);
     if (found != std::string::npos) {
         return true;
     }
@@ -26,12 +23,8 @@ void ProcessInfo::addModuleSections(IMG Image, ADDRINT ImageBase)
 
 bool ProcessInfo::addModule(IMG Image)
 {
-    // Add module into a global map
-    s_module mod;
-    init_module(mod, Image);
-
     // if this module is an object of observation, add its sections also
-    if (m_myPid == 0 && is_my_name(&mod, m_AnalysedApp)) {
+    if (m_myPid == 0 && is_my_name(IMG_Name(Image), m_AnalysedApp)) {
         m_myPid = PIN_GetPid();
         myModuleBase = IMG_LoadOffset(Image);
         addModuleSections(Image, myModuleBase);
