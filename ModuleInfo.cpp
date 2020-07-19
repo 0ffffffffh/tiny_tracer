@@ -52,10 +52,16 @@ const s_module* get_by_addr(ADDRINT Address, std::map<ADDRINT, s_module> &module
 std::string get_func_at(ADDRINT callAddr)
 {
     IMG pImg = IMG_FindByAddress(callAddr);
+    if (!IMG_Valid(pImg)) {
+        std::ostringstream sstr;
+        sstr << "[ " << callAddr << "]*";
+        return sstr.str();
+    }
+    const ADDRINT base = IMG_LoadOffset(pImg);
     RTN rtn = RTN_FindByAddress(callAddr);
     if (!RTN_Valid(rtn)) {
         std::ostringstream sstr;
-        sstr << "[" << addr_to_rva(callAddr) << "]*";
+        sstr << "[ + " << (callAddr - base) << "]*";
         return sstr.str();
     }
     std::string name = RTN_Name(rtn);
