@@ -33,6 +33,7 @@ public:
     void logCall(const ADDRINT prevAddr, const ADDRINT calledPageBase, const ADDRINT callAddr);
     void logSectionChange(const ADDRINT addr, std::string sectionName);
     void logNewSectionCalled(const ADDRINT addFrom, std::string prevSection, std::string currSection);
+    void logRtdsc(const ADDRINT base, const ADDRINT rva);
 
 protected:
     bool createFile()

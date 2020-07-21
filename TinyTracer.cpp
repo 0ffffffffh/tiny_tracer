@@ -140,6 +140,29 @@ VOID SaveTransitions(const CONTEXT* ctxt)
     PIN_UnlockClient();
 }
 
+VOID RdtscCalled(const CONTEXT* ctxt)
+{
+    PIN_LockClient();
+
+    ADDRINT Address = (ADDRINT)PIN_GetContextReg(ctxt, REG_INST_PTR);
+    IMG currModule = IMG_FindByAddress(Address);
+    const bool isCurrMy = pInfo.isMyAddress(Address);
+    if (isCurrMy) {
+        ADDRINT rva = addr_to_rva(Address); // convert to RVA
+        traceLog.logRtdsc(0, rva);
+    }
+    if (m_FollowShellcode && !IMG_Valid(currModule)) {
+        const ADDRINT start = GetPageOfAddr(Address);
+        ADDRINT rva = Address - start;
+        if (start != UNKNOWN_ADDR) {
+            traceLog.logRtdsc(start, rva);
+        }
+    }
+
+    PIN_UnlockClient();
+}
+
+
 /* ===================================================================== */
 // Instrumentation callbacks
 /* ===================================================================== */
@@ -155,6 +178,14 @@ VOID SaveTransitions(const CONTEXT* ctxt)
 
 VOID InstrumentInstruction(INS ins, VOID *v)
 {
+    if (INS_IsRDTSC(ins)) {
+        INS_InsertCall(
+            ins,
+            IPOINT_BEFORE, (AFUNPTR)RdtscCalled,
+            IARG_CONTEXT,
+            IARG_END
+        );
+    }
     if (INS_IsControlFlow(ins) || INS_IsIndirectControlFlow(ins)) {
         INS_InsertCall(
             ins, 
