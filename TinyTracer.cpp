@@ -85,7 +85,7 @@ VOID _SaveTransitions(const CONTEXT* ctxt)
 
     IMG currModule = IMG_FindByAddress(Address);
     IMG prevModule = IMG_FindByAddress(prevVA);
-    
+
     //is it a transition from the traced module to a foreign module?
     if (!isCurrMy && isPrevMy && prevVA != UNKNOWN_ADDR) {
         ADDRINT prevRVA = addr_to_rva(prevVA);
@@ -157,7 +157,22 @@ VOID InstrumentInstruction(INS ins, VOID *v)
 {
     if (INS_IsControlFlow(ins) || INS_IsIndirectControlFlow(ins)) {
         INS_InsertCall(
-            ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)SaveTransitions,
+            ins, 
+            IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
+            IARG_CONTEXT,
+            IARG_END
+        );
+    }
+}
+
+VOID Trace(TRACE trace, VOID *v)
+{
+    // Visit every basic block in the trace
+    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
+    {
+        BBL_InsertCall(
+            bbl, 
+            IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
             IARG_CONTEXT,
             IARG_END
         );
@@ -169,16 +184,6 @@ VOID ImageLoad(IMG Image, VOID *v)
     PIN_LockClient();
     pInfo.addModule(Image);
     PIN_UnlockClient();
-}
-
-static void OnCtxChange(THREADID threadIndex,
-    CONTEXT_CHANGE_REASON reason,
-    const CONTEXT *ctxtFrom,
-    CONTEXT *ctxtTo,
-    INT32 info,
-    VOID *v)
-{
-    _SaveTransitions(ctxtTo);
 }
 
 /*!
@@ -199,7 +204,7 @@ int main(int argc, char *argv[])
     {
         return Usage();
     }
-    
+
     std::string app_name = KnobModuleName.Value();
     if (app_name.length() == 0) {
         // init App Name:
@@ -223,7 +228,8 @@ int main(int argc, char *argv[])
     // Register function to be called before every instruction
     INS_AddInstrumentFunction(InstrumentInstruction, NULL);
 
-    PIN_AddContextChangeFunction(OnCtxChange, NULL);
+    // Register function to be called to instrument traces
+    TRACE_AddInstrumentFunction(Trace, NULL);
 
     std::cerr << "===============================================" << std::endl;
     std::cerr << "This application is instrumented by " << TOOL_NAME << " v." << VERSION << std::endl;
