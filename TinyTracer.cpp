@@ -186,7 +186,7 @@ VOID InstrumentInstruction(INS ins, VOID *v)
             IARG_END
         );
     }
-    if (INS_IsControlFlow(ins) || INS_IsIndirectControlFlow(ins)) {
+    if (INS_IsControlFlow(ins) || INS_IsFarJump(ins) || !INS_HasFallThrough(ins)) {
         INS_InsertCall(
             ins, 
             IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
