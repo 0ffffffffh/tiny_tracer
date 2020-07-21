@@ -5,7 +5,7 @@
 #include <fstream>
 
 #define TOOL_NAME "TinyTracer"
-#define VERSION "1.3.3-g"
+#define VERSION "1.3.3-h"
 
 class TraceLog 
 {

@@ -71,12 +71,8 @@ INT32 Usage()
 * @note use atomic operations for multi-threaded applications
 */
 
-VOID _SaveTransitions(const CONTEXT* ctxt)
+VOID _SaveTransitions(ADDRINT prevVA, ADDRINT Address)
 {
-    ADDRINT Address = (ADDRINT)PIN_GetContextReg(ctxt, REG_INST_PTR);
-    // previous address
-    static ADDRINT prevVA = UNKNOWN_ADDR;
-
     // last shellcode to which the transition got redirected:
     static ADDRINT lastShellc = UNKNOWN_ADDR;
 
@@ -133,10 +129,10 @@ VOID _SaveTransitions(const CONTEXT* ctxt)
     prevVA = Address;
 }
 
-VOID SaveTransitions(const CONTEXT* ctxt)
+VOID SaveTransitions(ADDRINT prevVA, ADDRINT Address)
 {
     PIN_LockClient();
-    _SaveTransitions(ctxt);
+    _SaveTransitions(prevVA, Address);
     PIN_UnlockClient();
 }
 
@@ -186,14 +182,16 @@ VOID InstrumentInstruction(INS ins, VOID *v)
             IARG_END
         );
     }
-    if (INS_IsControlFlow(ins) || INS_IsFarJump(ins) || !INS_HasFallThrough(ins)) {
+    if ((INS_IsControlFlow(ins) || INS_IsFarJump(ins))) {
         INS_InsertCall(
             ins, 
             IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
-            IARG_CONTEXT,
+            IARG_INST_PTR,
+            IARG_BRANCH_TARGET_ADDR,
             IARG_END
         );
     }
+
 }
 
 VOID Trace(TRACE trace, VOID *v)
@@ -204,7 +202,7 @@ VOID Trace(TRACE trace, VOID *v)
         BBL_InsertCall(
             bbl, 
             IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
-            IARG_CONTEXT,
+            IARG_INST_PTR,
             IARG_END
         );
     }
@@ -214,6 +212,22 @@ VOID ImageLoad(IMG Image, VOID *v)
 {
     PIN_LockClient();
     pInfo.addModule(Image);
+    PIN_UnlockClient();
+}
+
+static void OnCtxChange(THREADID threadIndex,
+    CONTEXT_CHANGE_REASON reason,
+    const CONTEXT *ctxtFrom,
+    CONTEXT *ctxtTo,
+    INT32 info,
+    VOID *v)
+{
+    if (ctxtTo == NULL || ctxtFrom == NULL) return;
+
+    PIN_LockClient();
+    ADDRINT prevVA = (ADDRINT)PIN_GetContextReg(ctxtFrom, REG_INST_PTR);
+    ADDRINT Address = (ADDRINT)PIN_GetContextReg(ctxtTo, REG_INST_PTR);
+    _SaveTransitions(prevVA, Address);
     PIN_UnlockClient();
 }
 
@@ -260,7 +274,9 @@ int main(int argc, char *argv[])
     INS_AddInstrumentFunction(InstrumentInstruction, NULL);
 
     // Register function to be called to instrument traces
-    TRACE_AddInstrumentFunction(Trace, NULL);
+    //TRACE_AddInstrumentFunction(Trace, NULL);
+
+    PIN_AddContextChangeFunction(OnCtxChange, NULL);
 
     std::cerr << "===============================================" << std::endl;
     std::cerr << "This application is instrumented by " << TOOL_NAME << " v." << VERSION << std::endl;
