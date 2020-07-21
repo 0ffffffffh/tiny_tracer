@@ -70,29 +70,10 @@ INT32 Usage()
 * @param[in]   Address    address of the instruction to be executed
 * @note use atomic operations for multi-threaded applications
 */
-/*
-bool is_valid_call(ADDRINT callAddr)
-{
-    const ADDRINT treshold = 0x50;
-    RTN rtn = RTN_FindByAddress(callAddr);
-    if (!RTN_Valid(rtn)) {
-        return false;
-    }
-    std::string name = RTN_Name(rtn);
-    ADDRINT rtnAddr = RTN_Address(rtn);
-    if (rtnAddr == callAddr) {
-        return true;
-    }
-    ADDRINT diff = callAddr - rtnAddr;
-    if (diff > treshold) {
-        return false;
-    }
-    return true;
-}*/
 
-VOID SaveTransitions(ADDRINT Address)
+VOID _SaveTransitions(const CONTEXT* ctxt)
 {
-    PIN_LockClient();
+    ADDRINT Address = (ADDRINT)PIN_GetContextReg(ctxt, REG_INST_PTR);
     // previous address
     static ADDRINT prevVA = UNKNOWN_ADDR;
 
@@ -150,7 +131,12 @@ VOID SaveTransitions(ADDRINT Address)
 
     // update saved
     prevVA = Address;
+}
 
+VOID SaveTransitions(const CONTEXT* ctxt)
+{
+    PIN_LockClient();
+    _SaveTransitions(ctxt);
     PIN_UnlockClient();
 }
 
@@ -169,11 +155,13 @@ VOID SaveTransitions(ADDRINT Address)
 
 VOID InstrumentInstruction(INS ins, VOID *v)
 {
-    INS_InsertCall(
-        ins, IPOINT_BEFORE, (AFUNPTR)SaveTransitions,
-        IARG_INST_PTR,
-        IARG_END
-    );
+    if (INS_IsControlFlow(ins) || INS_IsIndirectControlFlow(ins)) {
+        INS_InsertCall(
+            ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)SaveTransitions,
+            IARG_CONTEXT,
+            IARG_END
+        );
+    }
 }
 
 VOID ImageLoad(IMG Image, VOID *v)
@@ -181,6 +169,16 @@ VOID ImageLoad(IMG Image, VOID *v)
     PIN_LockClient();
     pInfo.addModule(Image);
     PIN_UnlockClient();
+}
+
+static void OnCtxChange(THREADID threadIndex,
+    CONTEXT_CHANGE_REASON reason,
+    const CONTEXT *ctxtFrom,
+    CONTEXT *ctxtTo,
+    INT32 info,
+    VOID *v)
+{
+    _SaveTransitions(ctxtTo);
 }
 
 /*!
@@ -224,6 +222,8 @@ int main(int argc, char *argv[])
 
     // Register function to be called before every instruction
     INS_AddInstrumentFunction(InstrumentInstruction, NULL);
+
+    PIN_AddContextChangeFunction(OnCtxChange, NULL);
 
     std::cerr << "===============================================" << std::endl;
     std::cerr << "This application is instrumented by " << TOOL_NAME << " v." << VERSION << std::endl;
