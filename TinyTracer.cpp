@@ -273,9 +273,7 @@ int main(int argc, char *argv[])
     // Register function to be called before every instruction
     INS_AddInstrumentFunction(InstrumentInstruction, NULL);
 
-    // Register function to be called to instrument traces
-    //TRACE_AddInstrumentFunction(Trace, NULL);
-
+    // Register context changes
     PIN_AddContextChangeFunction(OnCtxChange, NULL);
 
     std::cerr << "===============================================" << std::endl;
