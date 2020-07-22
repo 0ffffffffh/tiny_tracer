@@ -71,7 +71,7 @@ INT32 Usage()
 * @note use atomic operations for multi-threaded applications
 */
 
-VOID _SaveTransitions(ADDRINT prevVA, ADDRINT Address)
+VOID _SaveTransitions(const ADDRINT prevVA, const ADDRINT Address)
 {
     // last shellcode to which the transition got redirected:
     static ADDRINT lastShellc = UNKNOWN_ADDR;
@@ -124,12 +124,9 @@ VOID _SaveTransitions(ADDRINT prevVA, ADDRINT Address)
             traceLog.logSectionChange(rva, curr_name);
         }
     }
-
-    // update saved
-    prevVA = Address;
 }
 
-VOID SaveTransitions(ADDRINT prevVA, ADDRINT Address)
+VOID SaveTransitions(const ADDRINT prevVA, const ADDRINT Address)
 {
     PIN_LockClient();
     _SaveTransitions(prevVA, Address);
@@ -154,7 +151,6 @@ VOID RdtscCalled(const CONTEXT* ctxt)
             traceLog.logRtdsc(start, rva);
         }
     }
-
     PIN_UnlockClient();
 }
 
@@ -225,8 +221,8 @@ static void OnCtxChange(THREADID threadIndex,
     if (ctxtTo == NULL || ctxtFrom == NULL) return;
 
     PIN_LockClient();
-    ADDRINT prevVA = (ADDRINT)PIN_GetContextReg(ctxtFrom, REG_INST_PTR);
-    ADDRINT Address = (ADDRINT)PIN_GetContextReg(ctxtTo, REG_INST_PTR);
+    const ADDRINT prevVA = (ADDRINT)PIN_GetContextReg(ctxtFrom, REG_INST_PTR);
+    const ADDRINT Address = (ADDRINT)PIN_GetContextReg(ctxtTo, REG_INST_PTR);
     _SaveTransitions(prevVA, Address);
     PIN_UnlockClient();
 }
