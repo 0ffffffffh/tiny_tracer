@@ -44,7 +44,7 @@ protected:
         m_traceFile.open(m_logFileName.c_str());
         if (m_traceFile.is_open()) {
             m_traceFile
-                << "---- trace log by "<< TOOL_NAME << " v." << VERSION " ----"
+                << "0;---- traced by "<< TOOL_NAME << " v." << VERSION " ----"
                 << std::endl;
             m_traceFile.flush();
             return true;
