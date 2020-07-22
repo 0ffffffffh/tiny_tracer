@@ -4,7 +4,7 @@
 
 #include <map>
 
-#define UNKNOWN_ADDR (-1)
+#define UNKNOWN_ADDR ~ADDRINT(0)
 
 struct s_module {
     std::string name;
