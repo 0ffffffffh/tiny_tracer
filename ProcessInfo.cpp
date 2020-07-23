@@ -32,7 +32,7 @@ bool ProcessInfo::addModule(IMG Image)
     return true;
 }
 
-const bool ProcessInfo::isSectionChanged(ADDRINT Rva)
+const bool ProcessInfo::updateTracedModuleSection(ADDRINT Rva)
 {
     // saved section (of the target module)
     static s_module* prevSec = nullptr;

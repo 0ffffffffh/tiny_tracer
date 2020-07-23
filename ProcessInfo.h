@@ -34,6 +34,9 @@ public:
 
     bool isMyAddress(ADDRINT Address)
     {
+        if (Address == UNKNOWN_ADDR) {
+            return false;
+        }
         IMG myImg = IMG_FindByAddress(myModuleBase);
         IMG otherImg = IMG_FindByAddress(Address);
         if (!IMG_Valid(myImg) || !IMG_Valid(otherImg)) {
@@ -50,7 +53,7 @@ public:
         \param Rva : current RVA witin the target module
         \return : true if the section changed, false otherwise
     */
-    const bool isSectionChanged(ADDRINT Rva);
+    const bool updateTracedModuleSection(ADDRINT Rva);
     
 protected:
     
