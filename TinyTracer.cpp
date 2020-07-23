@@ -88,17 +88,25 @@ VOID _SaveTransitions(const ADDRINT addrFrom, const ADDRINT addrTo)
         else {
             //not in any of the mapped modules:
             lastShellc = GetPageOfAddr(addrTo); //save the beginning of this area
-            traceLog.logCall(RvaFrom, lastShellc, addrTo);
+            traceLog.logCall(0, RvaFrom, lastShellc, addrTo);
         }
     }
     // trace calls from witin the last shellcode that was called from the traced module:
-    if (m_FollowShellcode && !IMG_Valid(callerModule) && IMG_Valid(targetModule)) {
+    if (m_FollowShellcode && !IMG_Valid(callerModule)) {
         const ADDRINT callerPage = GetPageOfAddr(addrFrom);
         if (callerPage != UNKNOWN_ADDR && callerPage == lastShellc) {
-            const std::string func = get_func_at(addrTo);
-            const std::string dll_name = IMG_Name(targetModule);
-            traceLog.logCall(callerPage, addrFrom, false, dll_name, func);
+            if (IMG_Valid(targetModule)) {
+                const std::string func = get_func_at(addrTo);
+                const std::string dll_name = IMG_Name(targetModule);
+                traceLog.logCall(callerPage, addrFrom, false, dll_name, func);
+            }
+            else if (GetPageOfAddr(addrFrom) != GetPageOfAddr(addrTo)) {
+                // a call from shellcode to shellcode
+                traceLog.logCall(callerPage, addrFrom, GetPageOfAddr(addrTo), addrTo);
+                lastShellc = GetPageOfAddr(addrTo);
+            }
         }
+       
     }
 
     // is the address within the traced module?
